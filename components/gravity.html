@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			canvas {
+				border: 1px solid gray;
+			}
+			
+			.browserinfo {
+				font-size: 5px;
+			}
+		</style>
+		<script type="text/javascript" src="lib/jquery/jquery-3.3.1.min.js"></script>
+		<script>
+			var openDate = new Date();
+			
+			var data = {
+				fps: 60,
+				canvas: {
+					width: 1000,
+					height: 1000,
+					object: null
+				},
+				context: null,
+				objectsUpdateTime: openDate.getTime(),
+				objects: [
+					{
+						name: 'center',
+						r: 100,
+						position: [500,500],
+						vector: [0,0],
+						gravity: 9.8
+					},
+					{
+						name: 'up',
+						r: 30,
+						position: [500,300],
+						vector: [500,0]
+					},
+					{
+						name: 'down',
+						r: 30,
+						position: [500,700],
+						vector: [-400,0]
+					},
+					{
+						name: 'left',
+						r: 30,
+						position: [300,500],
+						vector: [0,-500]
+					},
+					{
+						name: 'right',
+						r: 30,
+						position: [700,500],
+						vector: [0,-500]
+					}
+				]
+			};
+			
+			$(document).ready(function() {
+				data.canvas.object = $('#main_canvas')[0];
+				data.canvas.object.width = data.canvas.width;
+				data.canvas.object.height = data.canvas.height;
+				
+				data.context = data.canvas.object.getContext("2d");
+				
+				worldUpdate();
+				
+				setInterval(function() {
+					worldUpdate();
+				},1000/data.fps);
+			});
+			
+			function worldUpdate()
+			{
+				objectsUpdate();
+				canvasUpdate();
+			}
+			
+			function objectsUpdate()
+			{
+				var ctime = new Date().getTime();
+				var mux = (ctime - data.objectsUpdateTime) / 1000;
+				data.objectsUpdateTime = ctime;
+				
+				for( idxObj in data.objects )
+				{
+					var obj = data.objects[idxObj];
+					
+					// 중력가속도 적용
+					
+					if( obj.name != 'center' )
+					{
+						// center와의 각도 구하기
+						
+						var rad = Math.atan2(obj.position[1] - data.objects[0].position[1],obj.position[0] - data.objects[0].position[0]); // TODO ???
+						
+						var deg = rad * 180 / Math.PI;
+						deg -= 270; // 북쪽이 deg(0)으로 오지 않아서 변경
+						if(deg<0) { deg += 360; } // deg값이 180~-180까지 오는경우가 있어서 변경
+						
+						//console.log(obj.name + ": " + deg + "deg");
+						
+						var g = data.objects[0].gravity;
+						obj.vector[0] -= g * Math.sin(deg*2*Math.PI/360); // 반응이 반대로 오길래 +에서 -로 변경
+						obj.vector[1] += g * Math.cos(deg*2*Math.PI/360);
+					}
+					
+					// 위치적용
+					
+					obj.position[0] += obj.vector[0] * mux;
+					obj.position[1] += obj.vector[1] * mux;
+				}
+			}
+			
+			function canvasUpdate()
+			{
+				var ctx = data.context;
+				var c = data.cursor;
+				
+				ctx.clearRect(0,0,data.canvas.width,data.canvas.height);
+				
+				for( idxObj in data.objects )
+				{
+					var object = data.objects[idxObj];
+
+					if( idxObj != 0 ) {
+						ctx.fillStyle = "#FF0000";
+					} else {
+						ctx.fillStyle = "#00EE66";
+					}
+					
+					ctx.beginPath();
+					ctx.arc(object.position[0], object.position[1], object.r, 0, 2 * Math.PI);
+					ctx.fill();
+				}
+			}
+			
+		</script>
+	</head>
+	<body>
+		<canvas id='main_canvas'></canvas>
+		<p class='browserinfo'>Google Chrome Version 71.0.3578.98</p>
+	</body>
+</html>
