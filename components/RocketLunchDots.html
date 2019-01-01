@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			canvas {
+				border: 1px solid gray;
+			}
+			
+			.browserinfo {
+				font-size: 5px;
+			}
+			
+			input[type=number] {
+				width: 100px;
+			}
+			
+			input[type=range] {
+				width: 300px;
+			}
+			
+			#main_canvas {
+				margin-top: 10px;
+			}
+		</style>
+		<script type="text/javascript" src="lib/jquery/jquery-3.3.1.min.js"></script>
+		<script>
+			var data = {
+				updateInterval: 1000/15,
+				degPlus: 0, // html에서 정의
+				dotDegShow: false, // html에서 정의
+				canvas: {
+					width: 0, // html에서 정의
+					height: 0 // html에서 정의
+				}
+			};
+			
+			$(document).ready(main);
+			
+			function main()
+			{
+				setInterval(intervalFunc,data.updateInterval);
+				intervalFunc();
+			}
+			
+			function intervalFunc()
+			{
+				dataUpdate($('#control'));
+				canvasUpdate();
+			}
+			
+			function dataUpdate(obj)
+			{
+				var alt = obj.find('.alt').val();
+				
+				var canvas = {};
+				canvas.width  = parseInt(obj.find('.canvas_width').val());
+				canvas.height = parseInt(obj.find('.canvas_height').val());
+				obj.find('.canvas_width_label').text(canvas.width);
+				obj.find('.canvas_height_label').text(canvas.height);
+				data.canvas.width  = canvas.width;
+				data.canvas.height = canvas.height;
+				
+				data.degPlus = parseInt(obj.find('.deg_plus').val()) / 100;
+				obj.find('.deg_plus_label').text(data.degPlus);
+				
+				data.dotDegShow = obj.find('.dot_deg_show').is(':checked');
+			}
+			
+			function canvasUpdate()
+			{
+				var canvas = $("#main_canvas")[0];
+				var ctx = draw.ctx = canvas.getContext('2d');
+				
+				canvas.width = data.canvas.width;
+				canvas.height = data.canvas.height;
+				
+				ctx.clearRect(0,0,data.canvas.width,data.canvas.height);
+				
+				draw.graph(data.canvas.width, data.canvas.height, data.dotDegShow ? data.canvas : null);
+			}
+			
+			var draw = {
+				ctx: null,
+				graph: function(width, height, canvasSize = null) {
+					
+					for( deg=180; deg<=270; deg+=data.degPlus )
+					{
+						var x = width * Math.cos(deg*2*Math.PI/360);
+						var y = height * Math.sin(deg*2*Math.PI/360);
+						var pos = {
+							x: width + x,
+							y: height + y
+						};
+						
+						draw.dot(pos.x, pos.y, canvasSize);
+					}
+				},
+				dot: function(x,y,canvasSize = null) {
+					draw.ctx.fillStyle = "#FF0000";
+					draw.ctx.beginPath();
+					draw.ctx.arc(x, y, 1, 0, 2 * Math.PI);
+					draw.ctx.fill();
+					
+					if( canvasSize != null )
+					{
+						var deg = Math.atan2(canvasSize.width - x, canvasSize.height - y) * 180 / Math.PI;
+						deg = Math.round(deg*100)/100;
+						
+						draw.ctx.fillStyle = "#000000";
+						draw.ctx.font = "10px Georgia";
+						draw.ctx.fillText(deg + " deg", x+5, y+5);
+					}
+				}
+			};
+			
+			
+		</script>
+	</head>
+	<body>
+		<div id='control'>
+			<p>CANVAS_WIDTH: <input class='canvas_width' type='range' min='10' max='3000' value='500'><label class='canvas_width_label'></label> px</p>
+			<p>CANVAS_HEIGHT: <input class='canvas_height' type='range' min='10' max='3000' value='500'><label class='canvas_height_label'></label> px</p>
+			<p>DEG_PLUS: <input class='deg_plus' type='range' min='1' max='1000' value='300'><label class='deg_plus_label'></label> px</p>
+			<p>DOT_DEG_SHOW: <input class='dot_deg_show' type='checkbox' checked></p>
+		</div>
+		<canvas id='main_canvas'></canvas>
+		<p class='browserinfo'>Google Chrome Version 71.0.3578.98</p>
+	</body>
+</html>
