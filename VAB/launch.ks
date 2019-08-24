@@ -1,20 +1,24 @@
-// LAUNCH V1 Snapshot-1
+// LAUNCH V1 Snapshot-2
 // Description) 액체연료엔진 1개와 고체연료 부스터를 효율적으로 사용하는 GravityTurn의 구현
+// STAGE) 엔진점화 => 고체부스터 분리
 
 // Note) 액체연료의 추력이 너무 쌔면 기체가 빨리 기울기 때문에 DRAG가 많이 올라가 ㄹ수 있다.
-// Note) TARGET_AP값은 적어도 대기권높이를 초과하기를 권장한다. (커빈은 70km 초과)
-// Note) 대기권을 통과한 직후 생성되는 메뉴버를 실행하는것은 수동으로 진행한다.
+// Note) TARGET_AP값은 적어도 대기권높이를 1km이상 초과하기를 권장한다. (커빈은 70km 초과)
+// Note) 생성된 메뉴버의 AP와 PE는 실제 수행시 오차가 꽤 있다.
 // Note) FUNCTION CREATE_CIRC_NODE Function => https://www.reddit.com/r/Kos/comments/5rp0w5/maneuver_nodes/
-
-LOCK g TO KERBIN:MU/(KERBIN:RADIUS+SHIP:ALTITUDE)^2. // m/s^2
-LOCK m TO SHIP:MASS. // tons
-LOCK w TO g*m. // tons
+// Note) Burntime 정확도가 약간 떨어지더라.
 
 // INIT THT,PIT,TARGET_AP.
 
 SET THT TO 1.0.
 SET PIT TO 90.
 SET TARGET_AP TO 80000.
+
+// SET Gravity Config
+
+LOCK g TO KERBIN:MU/(KERBIN:RADIUS+SHIP:ALTITUDE)^2. // m/s^2
+LOCK m TO SHIP:MASS. // tons
+LOCK w TO g*m. // tons
 
 // LOCK STEERING, THROTTLE.
 
@@ -53,7 +57,7 @@ UNTIL SHIP:ORBIT:APOAPSIS >= TARGET_AP {
     }
 
     IF( TARGET_AP_RATE >= 0.95 ) {
-        SET THT TO w*1.1/SHIP:MAXTHRUST.
+        SET THT TO w*1.1/SHIP:AVAILABLETHRUST.
         IF( THT > 1.0 ) {
             SET THT TO 1.0.
         }
@@ -121,6 +125,77 @@ FUNCTION CREATE_CIRC_NODE {
 
 CREATE_CIRC_NODE(TARGET_AP).
 
-// EXECUTE NODE
+// 메뉴버 노드관련 시간정보를 설정
 
-// https://pastebin.com/LiNNxUgK
+LOCK STEERING TO NEXTNODE.
+LOCK a TO SHIP:AVAILABLETHRUST/SHIP:MASS.
+LOCK burntime TO NEXTNODE:DELTAV:MAG/a.
+
+// 메뉴버 엔진점화포인트 근처까지 WARP
+
+SET steering_time TO 15.
+KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + NEXTNODE:ETA-burntime/2 - steering_time).
+
+// 메뉴버포인트 지점 ETA영역에 들어올때 까지 대기.
+
+UNTIL NEXTNODE:ETA-(burntime/2) <= 0 {
+    PRINT "NODE_ETA: " + ROUND(NEXTNODE:ETA,2) + ", NODE_BURNTIME: " + ROUND(burntime,2).
+    WAIT 0.1.
+}
+
+// DeltaV가 조금만 남을때까지 가속
+
+SET THT TO 1.
+UNTIL burntime <= 1 {
+    PRINT "NEXTNODE:DELTAV:MAG = " + NEXTNODE:DELTAV:MAG.
+    WAIT 0.1.
+}
+
+// 남은 DeltaV를 0에 수렴할 때 까지 가속
+
+UNTIL NEXTNODE:DELTAV:MAG < 1.0 {
+    SET THT TO w/SHIP:AVAILABLETHRUST.
+
+    PRINT "NEXTNODE:DELTAV:MAG = " + NEXTNODE:DELTAV:MAG + ", THT = " + THT.
+    WAIT 0.01.
+}
+
+UNTIL NEXTNODE:DELTAV:MAG < 0.1 {
+    SET THT TO w/20/SHIP:AVAILABLETHRUST.
+
+    PRINT "NEXTNODE:DELTAV:MAG = " + NEXTNODE:DELTAV:MAG + ", THT = " + THT.
+    WAIT 0.01.
+}
+
+UNTIL NEXTNODE:DELTAV:MAG < 0.01 {
+    SET THT TO w/200/SHIP:AVAILABLETHRUST.
+
+    PRINT "NEXTNODE:DELTAV:MAG = " + NEXTNODE:DELTAV:MAG + ", THT = " + THT.
+    WAIT 0.01.
+}
+
+// REMOVE MANEUVER
+
+REMOVE NEXTNODE.
+
+// 제어잠금 해제
+
+UNLOCK THROTTLE.
+UNLOCK STEERING.
+
+// 종료알림음 재생
+
+SET V0 TO GetVoice(0).
+SET hz TO 800.
+SET len TO 0.1.
+V0:PLAY(NOTE(hz,len)).
+WAIT 1.
+V0:PLAY(NOTE(hz,len)).
+WAIT 1.
+V0:PLAY(NOTE(hz,len)).
+WAIT 1.
+V0:PLAY(NOTE(hz,len)).
+WAIT 1.
+V0:PLAY(NOTE(hz,len)).
+WAIT 1.
+V0:PLAY(NOTE(hz,2)).
