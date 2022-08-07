@@ -1,20 +1,21 @@
 /// TERMINAL INIT
-SET TERMINAL:HEIGHT TO 24.
-SET TERMINAL:WIDTH TO 80.
 
-LIST PARTS IN part_list.
-SET part_idx TO select_part_in_list(SHIP:PARTS).
-IF( part_idx >= 0 )
-{
-	print(part_list[part_idx]).
-}
-ELSE
-{
-	print("NOT SELECTED PART").
-}
+// SET TERMINAL:HEIGHT TO 24.
+// SET TERMINAL:WIDTH TO 80.
+
+// LIST PARTS IN part_list.
+// SET part_idx TO select_part_in_list(SHIP:PARTS).
+// IF( part_idx >= 0 )
+// {
+// 	print(part_list[part_idx]).
+// }
+// ELSE
+// {
+// 	print("NOT SELECTED PART").
+// }
 
 
-// select_part_in_list(part_list)
+/// select_part_in_list(part_list)
 // part_list : List of Part objects
 // return    : selected index or -1(is not selected)
 function select_part_in_list
@@ -104,3 +105,5 @@ function select_part_in_list
 
 	return result.	
 }
+
+// compile select_part_in_list.ks to select_part_in_list.ksm.
